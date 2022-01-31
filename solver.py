@@ -38,8 +38,6 @@ class Position:
         return self.get_regex_string()
 
 class Session:
-    # Guesses must be input in the form "guess result" where guess is the word guessed and result is a length 5 string
-    # of _'s, ?'s, and +'s corresponding to the positions of black, yellow, and green letters respectively.
     def __init__(self):
         self.wrong_pos_letters = {}
         self.positions: List[Position] = [Position(), Position(), Position(), Position(), Position()]
@@ -136,5 +134,7 @@ class Session:
         return GuessStatus.INVALID_CHARACTER
 
 
+# Guesses must be input in the form "guess result" where guess is the word guessed and result is a length 5 string
+# of _'s, ?'s, and +'s corresponding to the positions of black, yellow, and green letters respectively.
 if __name__ == "__main__":
     session = Session()
