@@ -37,6 +37,9 @@ class Position:
     def __repr__(self):
         return self.get_regex_string()
 
+
+# TODO: Add support for recommending a word when there are too many options.
+# TODO: Add a UI for setting status instead of doing text input.
 class Session:
     def __init__(self):
         self.wrong_pos_letters = {}
