@@ -1,0 +1,12 @@
+A work-in-progress solver for World (https://www.powerlanguage.co.uk/wordle/).
+
+Usage: `python3 solver.py`
+Enter each guess and result in lowercase and separated by a space.
+_ for black squares, ? for yellow squares, + for green squares.
+For example, if the solution is the guess is "stick" and we see the colors "black yellow black green green", we would
+enter "stick _?_++".
+
+Original text file is words_alpha.txt, and the others are processed from that file. The original version can be found at
+https://github.com/dwyl/english-words.
+
+Requires Python 3.5 and higher.
