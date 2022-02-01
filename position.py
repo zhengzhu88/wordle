@@ -27,4 +27,4 @@ class Position:
 
 
 def generate_regex_from_positions(positions: List[Position]) -> str:
-    return "".join([pos.get_regex_string() for pos in positions]) + "\n"
+    return "".join([pos.get_regex_string() for pos in positions])

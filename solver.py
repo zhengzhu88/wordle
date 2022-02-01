@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 from collections import Counter
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from guess_status import GuessStatus, map_letter_to_status
 from position import Position, generate_regex_from_positions
 
 import re
+
+MAX_NUM_WORDS_TO_DISPLAY = 10
 
 
 def word_contains_known_letters(word: str, known_letters: Dict[str, int]) -> bool:
@@ -16,7 +18,7 @@ def word_contains_known_letters(word: str, known_letters: Dict[str, int]) -> boo
 
 
 def find_matches_in_word_list(letter_count: Dict[str, int], word_list: List[str]):
-    return [word for word in word_list if word_contains_known_letters(word, letter_count)]
+    return [word.strip() for word in word_list if word_contains_known_letters(word, letter_count)]
 
 
 def match_positions_and_letters(
@@ -35,46 +37,73 @@ def merge_known_letters(known_letters_tracker: Dict[str, int], known_letters_for
         known_letters_tracker[letter] = max(count, known_letters_tracker.get(letter, 0))
 
 
-def recommend_word(possible_words: List[str]):
-    # do a letter count and recommend the word with the highest heuristic value.
+def get_heuristic_values(possible_words: List[str]):
     counter = Counter(''.join(possible_words))
-    print(f"Sorted letter count {counter.most_common()}")
+
+    def word_to_heuristic_func(word: str) -> Tuple[str, int]:
+        def letter_to_heuristic_func(letter: str) -> int:
+            return counter.get(letter, 0)
+
+        char_set = set(word)
+        return word, sum(map(letter_to_heuristic_func, char_set))
+
+    heuristic_values = map(word_to_heuristic_func, possible_words)
+    return sorted(heuristic_values, key=lambda elem: elem[1], reverse=True)
+
+
+def recommend_word(possible_words: List[str]):
+    sorted_heuristics = get_heuristic_values(possible_words)
+    num_words_to_print = min(len(sorted_heuristics), MAX_NUM_WORDS_TO_DISPLAY)
+    if len(sorted_heuristics) > MAX_NUM_WORDS_TO_DISPLAY:
+        print("Too many possible words to display. These are good words to choose from:")
+    else:
+        print("These are the possible remaining words:")
+    for tup in sorted_heuristics[:num_words_to_print]:
+        print(f"{tup[0]} with score {tup[1]}")
 
 
 class Session:
-    # TODO: Add support for recommending a word when there are too many options.
     # TODO: Add a UI for setting status instead of doing text input.
     def __init__(self):
         self.known_letters = {}
         self.positions: List[Position] = [Position(), Position(), Position(), Position(), Position()]
         with open("words_alpha_length_5.txt") as dictionary:
-            self.dictionary: str = dictionary.read()
-        recommend_word(self.dictionary.split())
+            self.dictionary: List[str] = dictionary.read().splitlines()
+        recommend_word(self.dictionary)
         self._initiate_input_loop()
 
     def _initiate_input_loop(self):
         iteration: int = 1
+        search_space: List[str] = self.dictionary
         while iteration <= 6:
             print(f"Please enter your {iteration}-th guess and the result.")
             guess_result = input("> ").strip()
-            guess, result = guess_result.split()
-            if not self._validate_input(guess=guess, result=result):
+            if not self._validate_input(guess_result):
                 continue
+            guess, result = guess_result.split()
             if not self._process_guess(guess, result):
                 continue
-            matches: List[str] = match_positions_and_letters(self.positions, self.known_letters, self.dictionary)
+            matches: List[str] = match_positions_and_letters(self.positions, self.known_letters, "\n".join(search_space))
             print(f"Found {len(matches)} matches:")
             if len(matches) == 1:
                 print(matches[0])
                 print("Congrats!")
                 return
-            recommendations: List[str] = matches
-            for word in recommendations:
-                print(word.strip())
+            recommend_word(matches)
+            search_space = matches
             iteration += 1
         print("Better luck next time!")
 
-    def _validate_input(self, guess: str, result: str) -> bool:
+    def _validate_input(self, input_str: str) -> bool:
+        input_sections = input_str.split()
+        num_sections = len(input_sections)
+        if num_sections != 2:
+            if num_sections < 2:
+                print(f"Not enough inputs. Both a guess and a result string are needed.")
+            if num_sections > 2:
+                print(f"Too many inputs. Only input a guess and a result.")
+            return False
+        guess, result = input_sections
         is_valid = True
         if len(guess) != 5:
             print(f"Guess {guess} was not 5 letters long.")
