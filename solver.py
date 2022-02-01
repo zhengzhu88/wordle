@@ -1,17 +1,22 @@
 #!/usr/bin/python3
+import sys, getopt
 from collections import Counter
 from typing import List, Dict, Tuple, Optional
 from guess_status import GuessStatus, map_symbol_to_status
 from position import Position, generate_regex_from_positions
 
+import re
+import os
+
 try:
-    import tkinter as ttk
+    from tkinter import *
 
     VISUAL_MODE = True
+    if os.environ.get('DISPLAY', '') == '':
+        print('no display found. Using :0.0')
+        os.environ.__setitem__('DISPLAY', ':0.0')
 except ImportError:
     VISUAL_MODE = False
-
-import re
 
 MAX_NUM_WORDS_TO_DISPLAY = 10
 
@@ -148,11 +153,49 @@ class Session:
         return True
 
 
+def set_up_gui():
+    root = Tk()
+    root.title("Wordle Solver")
+    frame = Frame(root, bg="black")
+    frame.grid(column=0, row=0)
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
+
+    stringvar_grid = []
+    for y in range(6):
+        stringvar_grid.append([])
+        for x in range(5):
+            stringvar_grid[y].append(StringVar())
+            Entry(
+                frame,
+                bg="#101010",
+                fg="white",
+                width=2,
+                font="Helvetica 75 bold",
+                justify=CENTER,
+                borderwidth=0,
+                insertbackground="white",
+                textvariable=stringvar_grid[y][x],
+            ).grid(row=y, column=x, padx=5, pady=5)
+    root.mainloop()
+
+
+def main(argv):
+    opts, args = getopt.getopt(argv, shortopts="", longopts=["visual_mode="])
+    run_visual_mode = VISUAL_MODE
+    print(run_visual_mode)
+    for opt, arg in opts:
+        if opt == "--visual_mode":
+            run_visual_mode = arg == "True"
+    if run_visual_mode:
+        print("Running Wordle solver in visual mode.")
+        set_up_gui()
+    else:
+        print("Running Wordle solver in text mode.")
+        session = Session()
+
+
 # Guesses must be input in the form "guess result" where guess is the word guessed and result is a length 5 string
 # of _'s, ?'s, and +'s corresponding to the positions of black, yellow, and green letters respectively.
 if __name__ == "__main__":
-    if VISUAL_MODE:
-        print("Running Wordle solver in visual mode.")
-    else:
-        print("Running Wordle solver in text mode.")
-    session = Session()
+    main(sys.argv[1:])
