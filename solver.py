@@ -15,9 +15,30 @@ def word_contains_known_letters(word: str, known_letters: Dict[str, int]) -> boo
     return True
 
 
+def find_matches_in_word_list(letter_count: Dict[str, int], word_list: List[str]):
+    return [word for word in word_list if word_contains_known_letters(word, letter_count)]
+
+
+def match_positions_and_letters(
+        positions: List[Position],
+        letter_requirements: Dict[str, int],
+        search_space: str) -> List[str]:
+    pattern: str = generate_regex_from_positions(positions)
+    # Filter out words based on letter position.
+    regex_matches: List[str] = re.findall(pattern, search_space)
+    # Filter out words that don't use all known letters.
+    return find_matches_in_word_list(letter_requirements, regex_matches)
+
+
 def merge_known_letters(known_letters_tracker: Dict[str, int], known_letters_for_word: Dict[str, int]):
     for letter, count in known_letters_for_word.items():
         known_letters_tracker[letter] = max(count, known_letters_tracker.get(letter, 0))
+
+
+def recommend_word(possible_words: List[str]):
+    # do a letter count and recommend the word with the highest heuristic value.
+    counter = Counter(''.join(possible_words))
+    print(f"Sorted letter count {counter.most_common()}")
 
 
 class Session:
@@ -28,6 +49,7 @@ class Session:
         self.positions: List[Position] = [Position(), Position(), Position(), Position(), Position()]
         with open("words_alpha_length_5.txt") as dictionary:
             self.dictionary: str = dictionary.read()
+        recommend_word(self.dictionary.split())
         self._initiate_input_loop()
 
     def _initiate_input_loop(self):
@@ -40,7 +62,7 @@ class Session:
                 continue
             if not self._process_guess(guess, result):
                 continue
-            matches: List[str] = self._filter_for_matches()
+            matches: List[str] = match_positions_and_letters(self.positions, self.known_letters, self.dictionary)
             print(f"Found {len(matches)} matches:")
             if len(matches) == 1:
                 print(matches[0])
@@ -51,13 +73,6 @@ class Session:
                 print(word.strip())
             iteration += 1
         print("Better luck next time!")
-
-    def _filter_for_matches(self) -> List[str]:
-        pattern: str = generate_regex_from_positions(self.positions)
-        # Filter out words based on letter position.
-        regex_matches: List[str] = re.findall(pattern, self.dictionary)
-        # Filter out words that don't use all known letters.
-        return [word for word in regex_matches if word_contains_known_letters(word, self.known_letters)]
 
     def _validate_input(self, guess: str, result: str) -> bool:
         is_valid = True
