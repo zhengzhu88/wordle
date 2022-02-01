@@ -8,7 +8,7 @@ class GuessStatus(Enum):
     INVALID_CHARACTER = 4
 
 
-def map_letter_to_status(char: str) -> GuessStatus:
+def map_symbol_to_status(char: str) -> GuessStatus:
     if len(char) != 1:
         raise Exception(f"Cannot convert char {char} to a guess status.")
     if char == "_":

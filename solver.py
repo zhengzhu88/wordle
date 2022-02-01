@@ -1,8 +1,15 @@
 #!/usr/bin/python3
 from collections import Counter
-from typing import List, Dict, Tuple
-from guess_status import GuessStatus, map_letter_to_status
+from typing import List, Dict, Tuple, Optional
+from guess_status import GuessStatus, map_symbol_to_status
 from position import Position, generate_regex_from_positions
+
+try:
+    import tkinter as ttk
+
+    VISUAL_MODE = True
+except ImportError:
+    VISUAL_MODE = False
 
 import re
 
@@ -78,12 +85,16 @@ class Session:
         while iteration <= 6:
             print(f"Please enter your {iteration}-th guess and the result.")
             guess_result = input("> ").strip()
-            if not self._validate_input(guess_result):
+            parsed_tuple = self._parse_input(guess_result)
+            if parsed_tuple is None:
                 continue
-            guess, result = guess_result.split()
+            guess: str
+            result: List[GuessStatus]
+            guess, result = parsed_tuple
             if not self._process_guess(guess, result):
                 continue
-            matches: List[str] = match_positions_and_letters(self.positions, self.known_letters, "\n".join(search_space))
+            matches: List[str] = match_positions_and_letters(self.positions, self.known_letters,
+                                                             "\n".join(search_space))
             print(f"Found {len(matches)} matches:")
             if len(matches) == 1:
                 print(matches[0])
@@ -94,7 +105,7 @@ class Session:
             iteration += 1
         print("Better luck next time!")
 
-    def _validate_input(self, input_str: str) -> bool:
+    def _parse_input(self, input_str: str) -> Optional[Tuple[str, List[GuessStatus]]]:
         input_sections = input_str.split()
         num_sections = len(input_sections)
         if num_sections != 2:
@@ -102,8 +113,9 @@ class Session:
                 print(f"Not enough inputs. Both a guess and a result string are needed.")
             if num_sections > 2:
                 print(f"Too many inputs. Only input a guess and a result.")
-            return False
-        guess, result = input_sections
+            return None
+        guess: str = input_sections[0]
+        result: List[GuessStatus] = list(map(map_symbol_to_status, input_sections[1]))
         is_valid = True
         if len(guess) != 5:
             print(f"Guess {guess} was not 5 letters long.")
@@ -114,16 +126,15 @@ class Session:
         if not guess.isalpha():
             print(f"Guess {guess} was not alphabetical.")
             is_valid = False
-        return is_valid
+        return guess, result if is_valid else None
 
-    def _process_guess(self, guess: str, result: str) -> bool:
-        statuses: List[GuessStatus] = [map_letter_to_status(char) for char in result]
+    def _process_guess(self, guess: str, statuses: List[GuessStatus]) -> bool:
         if GuessStatus.INVALID_CHARACTER in statuses:
             return False
         known_letters_for_word = {}
         for i in range(len(guess)):
-            letter = guess[i]
-            status: GuessStatus = map_letter_to_status(result[i])
+            letter: str = guess[i]
+            status: GuessStatus = statuses[i]
             if status == GuessStatus.CONFIRMED:
                 self.positions[i].confirm_letter(letter=letter)
                 known_letters_for_word[letter] = known_letters_for_word.get(letter, 0) + 1
@@ -140,4 +151,8 @@ class Session:
 # Guesses must be input in the form "guess result" where guess is the word guessed and result is a length 5 string
 # of _'s, ?'s, and +'s corresponding to the positions of black, yellow, and green letters respectively.
 if __name__ == "__main__":
+    if VISUAL_MODE:
+        print("Running Wordle solver in visual mode.")
+    else:
+        print("Running Wordle solver in text mode.")
     session = Session()
