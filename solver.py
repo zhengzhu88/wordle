@@ -11,14 +11,16 @@ import os
 try:
     from tkinter import *
 
-    VISUAL_MODE = True
+    TKINTER_INSTALLED = True
     if os.environ.get('DISPLAY', '') == '':
         print('no display found. Using :0.0')
         os.environ.__setitem__('DISPLAY', ':0.0')
 except ImportError:
-    VISUAL_MODE = False
+    TKINTER_INSTALLED = False
 
 MAX_NUM_WORDS_TO_DISPLAY = 10
+DEFAULT_VISUAL_MODE = False
+DEFAULT_DEBUG_MODE = False
 
 
 def word_contains_known_letters(word: str, known_letters: Dict[str, int]) -> bool:
@@ -36,12 +38,20 @@ def find_matches_in_word_list(letter_count: Dict[str, int], word_list: List[str]
 def match_positions_and_letters(
         positions: List[Position],
         letter_requirements: Dict[str, int],
-        search_space: str) -> List[str]:
+        search_space: str,
+        debug_mode: bool) -> List[str]:
     pattern: str = generate_regex_from_positions(positions)
+    if debug_mode:
+        print(f"regex pattern {pattern}")
     # Filter out words based on letter position.
     regex_matches: List[str] = re.findall(pattern, search_space)
+    if debug_mode:
+        print(f"regex matches {regex_matches}")
     # Filter out words that don't use all known letters.
-    return find_matches_in_word_list(letter_requirements, regex_matches)
+    letter_matches = find_matches_in_word_list(letter_requirements, regex_matches)
+    if debug_mode:
+        print(f"letter matches {letter_matches}")
+    return letter_matches
 
 
 def merge_known_letters(known_letters_tracker: Dict[str, int], known_letters_for_word: Dict[str, int]):
@@ -76,7 +86,8 @@ def recommend_word(possible_words: List[str]):
 
 class Session:
     # TODO: Add a UI for setting status instead of doing text input.
-    def __init__(self):
+    def __init__(self, debug: bool):
+        self.debug_mode = debug
         self.known_letters = {}
         self.positions: List[Position] = [Position(), Position(), Position(), Position(), Position()]
         with open("words_alpha_length_5.txt") as dictionary:
@@ -98,8 +109,12 @@ class Session:
             guess, result = parsed_tuple
             if not self._process_guess(guess, result):
                 continue
-            matches: List[str] = match_positions_and_letters(self.positions, self.known_letters,
-                                                             "\n".join(search_space))
+            matches: List[str] = match_positions_and_letters(
+                positions=self.positions,
+                letter_requirements=self.known_letters,
+                search_space="\n".join(search_space),
+                debug_mode=self.debug_mode
+            )
             print(f"Found {len(matches)} matches:")
             if len(matches) == 1:
                 print(matches[0])
@@ -181,18 +196,26 @@ def set_up_gui():
 
 
 def main(argv):
-    opts, args = getopt.getopt(argv, shortopts="", longopts=["visual_mode="])
-    run_visual_mode = VISUAL_MODE
-    print(run_visual_mode)
+    opts, args = getopt.getopt(argv, shortopts="", longopts=["visual_mode=", "debug="])
+    run_visual_mode = DEFAULT_VISUAL_MODE
+    debug_mode = DEFAULT_DEBUG_MODE
     for opt, arg in opts:
         if opt == "--visual_mode":
-            run_visual_mode = arg == "True"
+            run_visual_mode = arg.lower() == "true"
+        elif opt == "--debug":
+            debug_mode = arg.lower() == "true"
+    if run_visual_mode and not TKINTER_INSTALLED:
+        print("Unable to run visual mode because an installation of tkinter could not be found. Please either install "
+              "tkinter or use --visual_mode=False")
+        run_visual_mode = False
+    if debug_mode:
+        print("Running solver in debug mode")
     if run_visual_mode:
         print("Running Wordle solver in visual mode.")
         set_up_gui()
     else:
         print("Running Wordle solver in text mode.")
-        session = Session()
+        session = Session(debug=debug_mode)
 
 
 # Guesses must be input in the form "guess result" where guess is the word guessed and result is a length 5 string

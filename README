@@ -1,10 +1,28 @@
 A work-in-progress solver for World (https://www.powerlanguage.co.uk/wordle/).
 
-Usage: `python3 solver.py`
-Enter each guess and result in lowercase and separated by a space.
-_ for black squares, ? for yellow squares, + for green squares.
-For example, if the guess is "stick" and we see the colors "black yellow black green green", we would
-enter "stick _?_++".
+Usage: `python3 solver.py [--visual_mode=<boolean>] [--debug=<boolean>]`
+
+Options:
+    --visual_mode
+        --visual_mode=True will run the solver with a GUI that allows entry of the guess. Clicking a square will toggle
+        the color of that square. Press "Enter" to lock-in the guess. Visual mode requires tkinter to be installed.
+        Visual mode is currently a work-in-progress.
+
+        --visual_mode=False will run the solver using only text. Guesses must be entered as an eleven
+        character lower case string of the form "<guess> <result>". The first five characters are for the word guessed
+        and the last five characters are for the string of characters representing the correctness of the corresponding
+        letter in the guess. Use _ for incorrect letters (black squares), ? for correct letter but incorrect position
+        (yellow squares), and + for correct letter and position (green squares). For example, if the guess is "stick"
+        and the colors are "black yellow black green green", enter the string as "stick _?_++".
+
+        Defaults to False.
+
+    --debug
+        --debug=True will print debug output to the terminal while the solver executes.
+
+        --debug=False will configure the solver to not print debug output.
+
+        Defaults to False.
 
 Original text file is words_alpha.txt, and the others are processed from that file. The original version can be found at
 https://github.com/dwyl/english-words.
